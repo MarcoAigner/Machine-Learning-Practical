@@ -6,3 +6,5 @@ dependencies:
   - numpy
   - scikit-learn
   - tensorflow
+  - seaborn
+  
