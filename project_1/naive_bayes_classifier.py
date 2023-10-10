@@ -1,4 +1,5 @@
 import pandas as pd
+import math as math
 
 class NaiveBayes:
     """
@@ -13,6 +14,7 @@ class NaiveBayes:
         """
 
         self.continuous = continuous
+
         pass
 
     def calculate_prior(self, data :pd.DataFrame, Y: str):
@@ -35,17 +37,16 @@ class NaiveBayes:
         :param data: pd.DataFrame containing training data (including the label column)
         :param target_name: str Name of the label column in data
         """
-        feature_prob = []
 
         prior = self.calculate_prior
 
         for column in data.columns:
             # calculcate continous
-            if data[column].dtypes== float:
-                print("test")
+            if data[column].dtypes == float:
+                
             # calculate discrete
             else:
-                print("test")
+                print("test_2")
         pass
 
 
