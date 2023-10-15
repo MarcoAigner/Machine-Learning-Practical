@@ -7,13 +7,14 @@ class NaiveBayes:
     """
     
 
-    def __init__(self, continuous=None):
+    def __init__(self):
         """
         :param continuous: list containing a bool for each feature column to be analyzed. True if the feature column
                            contains a continuous feature, False if discrete
         """
 
-        self.continuous = continuous
+        self.feature_prob = {}
+        self.prior = 0
 
         pass
 
@@ -37,26 +38,49 @@ class NaiveBayes:
         :param data: pd.DataFrame containing training data (including the label column)
         :param target_name: str Name of the label column in data
         """
-
-        prior = self.calculate_prior
+        
+        labels = sorted(list(data[target_name].unique()))
+        prob_continuous = {}
+        
 
         for column in data.columns:
-            # calculcate continous
-            if data[column].dtypes == float:
-                
-            # calculate discrete
-            else:
-                print("test_2")
-        pass
+            label_prob = {}
+            for label in labels:
+
+                # calculcate continous
+                if data[column].dtypes == float:
+                    filtered_data = data[data[target_name]==label]
+                    mean,std = filtered_data[column].mean(), filtered_data[column].std()
+                    p_dict = {}
+                    for value in data[column]:
+                        p_dict[value] = ((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((value-mean)**2 / (2 * std**2 ))))
+                    prob_continuous[label] = p_dict
+
+                # calculate discrete
+                else:
+                    con_prob = data.groupby([target_name, column]).size()/ data.groupby([target_name]).size()
+                    list_prob = []
+                    for option in con_prob.loc[label].index:
+                        list_prob.append({option: con_prob.loc[label][option]})
+                    
+                    label_prob[label] = list_prob 
+                    self.feature_prob[column] = label_prob 
+
+        return prob_continuous, self.feature_prob
 
 
-    def predict_probability(self, data: pd.DataFrame):
+
+    def predict_probability(self, data: pd.DataFrame, target_name: str):
         """
         Calculates the Naive Bayes prediction for a whole pd.DataFrame.
         :param data: pd.DataFrame to be predicted    X_test
         :return: pd.DataFrame containing probabilities for all categories as well as the classification result
         """
         #call fit method here
+
+        prior = {index: data.groupby([target_name]).size().loc[index] for index in data.groupby([target_name]).size().index}
+
+
         pass
 
     def evaluate_on_data(self, data: pd.DataFrame, test_labels):
