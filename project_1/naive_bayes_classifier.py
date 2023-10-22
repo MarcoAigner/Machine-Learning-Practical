@@ -13,12 +13,14 @@ class NaiveBayes:
                            contains a continuous feature, False if discrete
         """
 
-        self.feature_prob = {}
+        self.prob_discrete = None
+        self.gaus_variables = {}
+        self.labels = []
         self.prior = 0
 
         pass
 
-    def calculate_prior(self, data :pd.DataFrame, Y: str):
+    def calculate_prior(self, data: pd.DataFrame, Y: str):
         """
         Calculates the P(Y=y) for all possible y
         :param data: pd.DataFrame containing training data (including the label column)
@@ -38,35 +40,41 @@ class NaiveBayes:
         :param data: pd.DataFrame containing training data (including the label column)
         :param target_name: str Name of the label column in data
         """
-        
-        labels = sorted(list(data[target_name].unique()))
-        prob_continuous = {}
-        
+        variable_continuous = {}
+        prob_discrete = {key: None for key in data.columns.values[1:]}
 
+        self.labels = list(data[target_name].unique())
+        
         for column in data.columns:
             label_prob = {}
-            for label in labels:
+            for label in self.labels:
 
                 # calculcate continous
                 if data[column].dtypes == float:
+                    variables_per_label = {}
                     filtered_data = data[data[target_name]==label]
-                    mean,std = filtered_data[column].mean(), filtered_data[column].std()
-                    p_dict = {}
-                    for value in data[column]:
-                        p_dict[value] = ((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((value-mean)**2 / (2 * std**2 ))))
-                    prob_continuous[label] = p_dict
+                    variables_per_label["mean"] = filtered_data[column].mean()
+                    variables_per_label["std"] = filtered_data[column].std()
+                    variable_continuous[label] = variables_per_label
+                    self.gaus_variables[column] = pd.DataFrame.from_dict(variable_continuous)
 
                 # calculate discrete
                 else:
                     con_prob = data.groupby([target_name, column]).size()/ data.groupby([target_name]).size()
-                    list_prob = []
-                    for option in con_prob.loc[label].index:
-                        list_prob.append({option: con_prob.loc[label][option]})
                     
-                    label_prob[label] = list_prob 
-                    self.feature_prob[column] = label_prob 
+                    try: 
+                        label_prob[label] = con_prob.loc[label][True]
+                    except:
+                        label_prob[label] = 0.0   
 
-        return prob_continuous, self.feature_prob
+                    prob_discrete[column] = label_prob 
+
+            
+        self.prob_discrete = pd.DataFrame.from_dict(prob_discrete) 
+
+        self.prior = {index: data.groupby([target_name]).size().loc[index]/data.shape[0] for index in data.groupby([target_name]).size().index}
+
+        return self.gaus_variables, self.prob_discrete
 
 
 
@@ -76,12 +84,39 @@ class NaiveBayes:
         :param data: pd.DataFrame to be predicted    X_test
         :return: pd.DataFrame containing probabilities for all categories as well as the classification result
         """
-        #call fit method here
+        
+        likelyhood_list= []
+        likelyhood_prior = {}
+        prediction_prob = {}
+        prediction_list = []
+      
+        for index in data.index:
+            for label in self.labels:
+                for column in data.columns:
+                    if data[column].dtypes == float:
+                        std = self.gaus_variables[column][label]["std"]
+                        mean = self.gaus_variables[column][label]["mean"]
+                        likelyhood_list.append(((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((data[column][index]-mean)**2 / (2 * std**2 )))))
+                    else:
+                        if data[column][index] == True:
+                            likelyhood_list.append(self.prob_discrete[column][label])
+                    
 
-        prior = {index: data.groupby([target_name]).size().loc[index] for index in data.groupby([target_name]).size().index}
+                likelyhood_prior[label] = math.prod(likelyhood_list) * self.prior[label]
+                
+                
+            evidence = sum(likelyhood_prior.values())
+            for label in self.labels:
+                if evidence > float(0):
+                    prediction_prob[label] = likelyhood_prior[label]/evidence
+                else:
+                    prediction_prob[label] = float(0)
+            
+            prediction_list.append(max(prediction_prob, key=prediction_prob.get))
+        
+        data[target_name] = prediction_list
 
-
-        pass
+        return data
 
     def evaluate_on_data(self, data: pd.DataFrame, test_labels):
         """
@@ -94,9 +129,4 @@ class NaiveBayes:
         pass
 
 
-    def calculate_likelihood_gaussian(df, feat_name, feat_val, Y, label):
-        feat = list(df.columns)
-        df = df[df[Y]==label]
-        mean, std = df[feat_name].mean(), df[feat_name].std()
-        p_x_given_y = (1 / (np.sqrt(2 * np.pi) * std)) *  np.exp(-((feat_val-mean)**2 / (2 * std**2 )))
-        return p_x_given_y
+    
