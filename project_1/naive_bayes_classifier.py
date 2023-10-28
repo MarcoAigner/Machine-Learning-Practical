@@ -21,18 +21,6 @@ class NaiveBayes:
 
         pass
 
-    def calculate_prior(self, data: pd.DataFrame, Y: str):
-        """
-        Calculates the P(Y=y) for all possible y
-        :param data: pd.DataFrame containing training data (including the label column)
-        :param Y: str Name of the label column in data
-        """
-
-        labels_count = data[Y].value_counts()
-        for label,count in labels_count.items():
-                labels_count[label] = count / len(data) 
-        return labels_count
-
     def calculate_continuous(self, data: pd.DataFrame, column: str, target_name: str, labels: list):
         variable_continuous = {}
         
@@ -86,7 +74,7 @@ class NaiveBayes:
         for label in self.labels:
             self.prob_discrete[label] = pd.DataFrame.from_dict(self.discrete[label]) 
 
-        self.prior = {index: data.groupby([target_name]).size().loc[index]/data.shape[0] for index in data.groupby([target_name]).size().index}
+        self.prior = dict(data[target_name].value_counts()/data.shape[0])
 
         return self.gaus_variables, self.prob_discrete
 
@@ -112,9 +100,10 @@ class NaiveBayes:
                         mean = self.gaus_variables[column][label]["mean"]
                         likelyhood_list.append(((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((data[column][index]-mean)**2 / (2 * std**2 )))))
                     else:
-                        feature_label =  data[column][index]
+                        feature_label = data[column][index]
                         likelyhood_list.append(self.prob_discrete[label][column][feature_label])
                 
+                # variable änder in zähler
                 likelyhood_prior[label] = math.prod(likelyhood_list) * self.prior[label]
                 
             evidence = sum(likelyhood_prior.values())
@@ -131,8 +120,6 @@ class NaiveBayes:
 
         return data
     
-
-
     
     def evaluate_on_data(self, data: pd.DataFrame, test_labels):
         """
