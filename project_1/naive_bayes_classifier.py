@@ -19,6 +19,8 @@ class NaiveBayes:
         self.prior = {}
         self.discrete = {}
 
+        self.label_column = None
+
         pass
 
     def calculate_continuous(self, data: pd.DataFrame, column: str, target_name: str, labels: list):
@@ -53,6 +55,8 @@ class NaiveBayes:
         :param data: pd.DataFrame containing training data (including the label column)
         :param target_name: str Name of the label column in data
         """
+
+        self.label_column = target_name
 
         self.labels = data[target_name].unique()
         column_dict = {column: {} for column in data.columns.values[1:-1]}
@@ -138,7 +142,7 @@ class NaiveBayes:
 
         return data
 
-    def evaluate_on_data(self, data: pd.DataFrame, test_labels):
+    def evaluate_on_data(self, data: pd.DataFrame, test_labels: pd.Series):
         """
         Predicts a test DataFrame and compares it to the given test_labels.
         :param data: pd.DataFrame containing the test data
@@ -146,4 +150,15 @@ class NaiveBayes:
         :return: tuple of overall accuracy and confusion matrix values
         """
 
-        pass
+        # perform predictions
+        predictions = self.predict_probability(
+            data=data, target_name=self.label_column)['prediction']  # a pd.Series
+
+        # calculate the normalized confusion matrix
+        confusion_matrix = pd.crosstab(
+            index=predictions, columns=test_labels, margins=True, normalize=True)
+
+        # extract the accuracy out of the confusion matrix
+        accuracy = confusion_matrix.at['All', 'All']
+
+        return accuracy, confusion_matrix
