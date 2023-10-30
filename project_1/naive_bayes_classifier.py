@@ -84,7 +84,7 @@ class NaiveBayes:
 
         self.prior = dict(data[target_name].value_counts()/data.shape[0])
 
-        return self.gaus_variables, self.prob_discrete
+        return  # removed return values
 
     def predict_probability(self, data: pd.DataFrame, target_name: str):
         """
