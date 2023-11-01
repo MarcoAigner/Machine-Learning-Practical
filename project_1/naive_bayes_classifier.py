@@ -23,28 +23,45 @@ class NaiveBayes:
 
         pass
 
-    def calculate_continuous(self, data: pd.DataFrame, column: str, target_name: str, labels: list):
+    def calculate_continuous(self, train_data: pd.DataFrame, feature_column: str, target_column: str, target_labels: list):
+        """
+        Calculate and store the mean and std for continuous features.
+
+        :param train_data: pd.DataFrame containing training data
+        :param feature_column: name of the feature column
+        :param target_column: name of the target column
+        :param target_labels: list of unique target labels
+        :return: DataFrame containing statistics for continuous features
+        """
         variable_continuous = {}
 
-        for label in labels:
+        for label in target_labels:
             variables_per_label = {}
-            filtered_data = data[data[target_name] == label]
-            variables_per_label["mean"] = filtered_data[column].mean()
-            variables_per_label["std"] = filtered_data[column].std()
+            filtered_data = train_data[train_data[target_column] == label]
+            variables_per_label["mean"] = filtered_data[feature_column].mean()
+            variables_per_label["std"] = filtered_data[feature_column].std()
             variable_continuous[label] = variables_per_label
 
         continous_variables = pd.DataFrame.from_dict(variable_continuous)
 
         return continous_variables
 
-    def calculate_discrete(self, target_labels: list, con_prob: pd.Series, current_label: str):
+    def calculate_discrete(self, target_labels: list, conditional_probability_feature: pd.Series, current_target_label: str):
+        """
+        Calculate and store conditional probabilities for discrete features.
 
+        :param target_labels: list of unique target_labels
+        :param conditional_probability_feature: conditional probabilities for discrete features with every combination
+        :param current_target_label: current target_label being analyzed
+        :return: dictionary of conditional probabilities for discrete features
+        """
+    
         label_dict = {label: None for label in target_labels}
-        for label_feature in target_labels:
+        for feature_label in target_labels:
             try:
-                label_dict[label_feature] = con_prob.loc[current_label][label_feature]
+                label_dict[feature_label] = conditional_probability_feature.loc[current_target_label][feature_label]
             except:
-                label_dict[label_feature] = 0.0
+                label_dict[feature_label] = 0.0
 
         return label_dict
 
@@ -67,7 +84,7 @@ class NaiveBayes:
                 # calculcate continous
                 if data[column].dtypes == float:
                     self.gaus_variables[column] = self.calculate_continuous(
-                        data, column, target_name, self.labels)
+                        train_data=data, feature_column=column, target_column = target_name, target_labels = self.labels)
 
                 # calculate discrete
                 else:
@@ -76,7 +93,7 @@ class NaiveBayes:
                         con_prob = data.groupby([target_name, column]).size(
                         ) / data.groupby([target_name]).size()
                         self.discrete[label][column] = self.calculate_discrete(
-                            self.labels, con_prob, label)
+                            target_labels = self.labels, conditional_probability_feature = con_prob, current_target_label = label)
 
         for label in self.labels:
             self.prob_discrete[label] = pd.DataFrame.from_dict(
