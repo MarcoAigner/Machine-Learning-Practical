@@ -1,4 +1,5 @@
 import pandas as pd
+import math as math
 
 
 class NaiveBayes:
@@ -15,54 +16,50 @@ class NaiveBayes:
         self.feature_probabilities = {}  # the likelihoods
 
         # other variables
-        self.class_labels = []
+        self.target_labels = []
+        self.column_target = None
 
-    def fit(self, dataframe: pd.DataFrame, label_column: str):
+    def fit(self, data: pd.DataFrame, target_name: str):
         """
         Fitting the training data by saving all relevant conditional probabilities for discrete values or for continuous
         features. 
         :param data: pd.DataFrame containing training data (including the label column)
-        :param label_column: str Name of the label column in data
+        :param target_name: str Name of the label column in data
         """
+
+        self.column_target = target_name
         # save some data to class variables
-        self.label_column = label_column  # label column
-        self.class_labels = dataframe[label_column].unique()  # class instances
+        # class instances
+        self.target_labels = data[self.column_target].unique()
 
         # calculate class probabilities
-        self.class_probabilities = dataframe[label_column].value_counts(
+        self.class_probabilities = data[self.column_target].value_counts(
             normalize=True).reset_index()  # normalize returns values between 0 and 1
 
-        feature_columns = dataframe.drop(columns=label_column)
+        feature_columns = data.drop(columns=self.column_target)
 
         # calculate feature probabilities
         for feature_column in feature_columns:
             # nest a dataframe within the parent dictionary
             self.feature_probabilities[feature_column] = pd.DataFrame()
-            match dataframe.dtypes[feature_column]:
+            match data.dtypes[feature_column]:
                 case 'float64':  # continuous value
-                    df = pd.DataFrame(self.class_labels,
-                                      columns=[label_column])
+                    df = pd.DataFrame(self.target_labels,
+                                      columns=[self.column_target])
                     # aggregate functions are performed on each class instance
-                    df['mean'] = dataframe.groupby(by=label_column)[
+                    df['mean'] = data.groupby(by=self.column_target)[
                         feature_column].mean()
-                    df['std'] = dataframe.groupby(by=label_column)[
+                    df['std'] = data.groupby(by=self.column_target)[
                         feature_column].std()
                     self.feature_probabilities[feature_column] = df
                 case 'string' | "bool":  # discrete value
-                    grouped = dataframe.groupby(by=feature_column)[
-                        label_column]
+                    grouped = data.groupby(by=feature_column)[
+                        self.column_target]
                     self.feature_probabilities[feature_column] = grouped.value_counts(
                         normalize=True).reset_index()  # analogous to class probabilities
                 case _:
                     raise (
                         TypeError('Features need to either be continuous or boolean'))
-
-    def predict_probability(self, dataframe: pd.DataFrame):
-        """
-        Calculates the Naive Bayes prediction for a whole pd.DataFrame.
-        :param data: pd.DataFrame to be predicted    X_test
-        :return: pd.DataFrame containing probabilities for all categories as well as the classification result
-        """
 
     def predict_probability(self, data: pd.DataFrame):
         """
@@ -83,20 +80,32 @@ class NaiveBayes:
                 likelyhood_list = []
                 for column in data.columns:
                     if data[column].dtypes == float:
-                        std = self.gaus_variables[column][label]["std"]
-                        mean = self.gaus_variables[column][label]["mean"]
+                        std = self.feature_probabilities[column]["std"][self.feature_probabilities[column]
+                                                                        [self.column_target] == label].iloc[0]
+                        mean = self.feature_probabilities[column]["mean"][
+                            self.feature_probabilities[column][self.column_target] == label].iloc[0]
                         likelyhood_list.append(
-                            ((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((data[column][index]-mean)**2 / (2 * std**2)))))
+                            ((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((data[column].loc[index]-mean)**2 / (2 * std**2)))))
                     else:
                         feature_label = data[column][index]
-                        likelyhood_list.append(
-                            self.prob_discrete_all[label][column][feature_label])
+                        try:
+                            likelyhood_list.append(self.feature_probabilities[column]['proportion'][(
+                                self.feature_probabilities[column][self.column_target] == label) & (self.feature_probabilities[column][column] == feature_label)].iloc[0])
+                        except:
+                            likelyhood_list.append(float(0))
+                print(likelyhood_list)
 
                 # variable änder in zähler
+                print("class prob")
+                print(self.class_probabilities['proportion']
+                      [self.class_probabilities[self.column_target] == label].iloc[0])
                 likelyhood_prior[label] = math.prod(
-                    likelyhood_list) * self.prior[label]
-
+                    likelyhood_list) * self.class_probabilities['proportion'][self.class_probabilities[self.column_target] == label].iloc[0]
+            print("prior")
+            print(likelyhood_prior)
             evidence = sum(likelyhood_prior.values())
+            print("evidence")
+            print(evidence)
             for label in self.target_labels:
                 if evidence > float(0):
                     prediction_prob[label] = likelyhood_prior[label]/evidence
