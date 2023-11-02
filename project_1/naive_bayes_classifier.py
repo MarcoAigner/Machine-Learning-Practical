@@ -49,7 +49,7 @@ class NaiveBayes:
                     df['std'] = dataframe.groupby(by=label_column)[
                         feature_column].std()
                     self.feature_probabilities[feature_column] = df
-                case 'bool':  # discrete value
+                case 'string'|"bool":  # discrete value
                     grouped = dataframe.groupby(by=feature_column)[
                         label_column]
                     self.feature_probabilities[feature_column] = grouped.value_counts(
