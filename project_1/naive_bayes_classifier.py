@@ -9,62 +9,28 @@ class NaiveBayes:
 
     def __init__(self):
         """
-        :param continuous: list containing a bool for each feature column to be analyzed. True if the feature column
-                           contains a continuous feature, False if discrete
         """
 
-        # Initialize class attributes
-        self.prob_discrete_all = {}  # Dictionary to store conditional probabilities for discrete features
-        self.gaus_variables = {}  # Dictionary to store statistics for continuous features
-        self.target_labels = []  # List of unique labels in the dataset
-        self.prior = {}  # Prior probabilities for each label
+        # conditonal probabilities
+        self.class_probabilities = pd.DataFrame()  # the priors
+        self.feature_probabilities = {}  # the likelihoods
 
-        pass
 
-    def calculate_continuous(self, train_data: pd.DataFrame, feature_column: str, target_column: str):
+        # other variables
+        self.target_labels = []
+        self.column_target = None
+
+
+    def suitable_data(self, data: pd.DataFrame, required_rows: int = 10) -> tuple[bool, int]:
         """
-        Calculate and store the mean and std for continuous features.
-
-        :param train_data: pd.DataFrame containing training data
-        :param feature_column: name of the feature column
-        :param target_column: name of the target column
-        :return: DataFrame containing statistics for continuous features
+        Checks, whether data is suitable for fitting. Suitability is defined by having at least two distinct class instances as well as a defined number of rows (defaults to 10) 
+        :param data: pd.DataFrame containing training data (including the label column)
+        :param required_rows: int how many rows data needs to contain to count as suitable for fit
         """
-        variable_continuous = {}
+        enough_rows = data.shape[0] >= required_rows
+        enough_classes = len(self.target_labels) >= 2
 
-        for label in self.target_labels:
-            variables_per_label = {}
-            filtered_data = train_data[train_data[target_column] == label]
-            variables_per_label["mean"] = filtered_data[feature_column].mean()
-            variables_per_label["std"] = filtered_data[feature_column].std()
-            variable_continuous[label] = variables_per_label
-
-        continous_variables = pd.DataFrame.from_dict(variable_continuous)
-
-        return continous_variables
-
-    def calculate_discrete(self, feature_labels: list, conditional_probability_feature: pd.Series, current_target_label: str):
-        """
-        Calculate and store conditional probabilities for discrete features.
-
-        :param feature_labels: list of unique feature_labels
-        :param conditional_probability_feature: conditional probabilities for discrete features with every combination
-        :param current_target_label: current target_label being analyzed
-        :return: dictionary of conditional probabilities for discrete features
-        """
-    
-        label_dict = {label: None for label in self.target_labels}
-
-        for label in feature_labels:
-            try:
-                label_dict[label] = conditional_probability_feature.loc[current_target_label][label]
-            except:
-                label_dict[label] = 0.0
-
-        return label_dict
-    
-    # mind 2 labels
-    # "x" Zeilen -> Begründen
+        return (True, required_rows) if enough_rows & enough_classes else (False, required_rows)
 
     def fit(self, data: pd.DataFrame, target_name: str):
         """
@@ -73,29 +39,46 @@ class NaiveBayes:
         :param data: pd.DataFrame containing training data (including the label column)
         :param target_name: str Name of the label column in data
         """
+        
+        # save some data to class variables
+        self.column_target = target_name  # label column name
+        # class instances
+        self.target_labels = data[self.column_target].unique()
 
-        self.target_labels = data[target_name].unique()
-        column_dict = {column: {} for column in data.columns.values[1:-1]}
-        prob_discrete_dict = {label: column_dict.copy() for label in self.target_labels}
+        # check if the data is sufficient for fitting
+        data_is_suitable, required_rows = self.suitable_data(data)
+        if (not data_is_suitable):
+            raise Exception(
+                f'Training data needs to contain at least two distinct classes and {required_rows} rows.')
 
-        for column in data.columns:
-            if column != target_name:
-                # calculcate continous
-                if data[column].dtypes == float:
-                    self.gaus_variables[column] = self.calculate_continuous(
-                        train_data=data, feature_column=column, target_column = target_name)
+        # calculate class probabilities
+        self.class_probabilities = data[self.column_target].value_counts(
+            normalize=True).reset_index()  # normalize returns values between 0 and 1
 
-                # calculate discrete
-                else:
-                    for label in self.target_labels:
-                        con_prob = data.groupby([target_name, column]).size() / data.groupby([target_name]).size()
-                        prob_discrete_dict[label][column] = self.calculate_discrete(
-                            feature_labels = data[column].unique(), conditional_probability_feature = con_prob, current_target_label = label)
+        feature_columns = data.drop(columns=self.column_target)
 
-        for label in self.target_labels:
-            self.prob_discrete_all[label] = pd.DataFrame.from_dict(prob_discrete_dict[label])
-
-        self.prior = dict(data[target_name].value_counts()/data.shape[0])
+        # calculate feature probabilities
+        for feature_column in feature_columns:
+            # nest a dataframe within the parent dictionary
+            self.feature_probabilities[feature_column] = pd.DataFrame()
+            match data.dtypes[feature_column]:
+                case 'float64':  # continuous value
+                    df = pd.DataFrame(self.target_labels,
+                                      columns=[self.column_target])
+                    # aggregate functions are performed on each class instance
+                    df['mean'] = data.groupby(by=self.column_target)[
+                        feature_column].mean()
+                    df['std'] = data.groupby(by=self.column_target)[
+                        feature_column].std()
+                    self.feature_probabilities[feature_column] = df
+                case 'string' | 'bool':  # discrete value
+                    grouped = data.groupby(by=self.column_target)[
+                        feature_column]
+                    self.feature_probabilities[feature_column] = grouped.value_counts(
+                        normalize=True).reset_index()  # analogous to class probabilities
+                case _:
+                    raise (
+                        TypeError('Features need to either be continuous or boolean'))
 
         return  # removed return values
 
@@ -118,25 +101,36 @@ class NaiveBayes:
                 likelyhood_list = []
                 for column in data.columns:
                     if data[column].dtypes == float:
-                        std = self.gaus_variables[column][label]["std"]
-                        mean = self.gaus_variables[column][label]["mean"]
+
+                        std = self.feature_probabilities[column]["std"][self.feature_probabilities[column]
+                                                                        [self.column_target] == label].iloc[0]
+                        mean = self.feature_probabilities[column]["mean"][
+                            self.feature_probabilities[column][self.column_target] == label].iloc[0]
                         likelyhood_list.append(
-                            ((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((data[column][index]-mean)**2 / (2 * std**2)))))
+                            ((1 / (math.sqrt(2 * math.pi) * std)) * math.exp(-((data[column].loc[index]-mean)**2 / (2 * std**2)))))
                     else:
                         feature_label = data[column][index]
-                        likelyhood_list.append(self.prob_discrete_all[label][column][feature_label])
+                        try:
+                            likelyhood_list.append(self.feature_probabilities[column]['proportion'][(
+                                self.feature_probabilities[column][self.column_target] == label) & (self.feature_probabilities[column][column] == feature_label)].iloc[0])
+                        except:
+                            likelyhood_list.append(float(0))
 
                 # variable änder in zähler
-                likelyhood_prior[label] = math.prod(likelyhood_list) * self.prior[label]
+                likelyhood_prior[label] = math.prod(
+                    likelyhood_list) * self.class_probabilities['proportion'][self.class_probabilities[self.column_target] == label].iloc[0]
 
             evidence = sum(likelyhood_prior.values())
+
             for label in self.target_labels:
                 if evidence > float(0):
                     prediction_prob[label] = likelyhood_prior[label]/evidence
                 else:
                     prediction_prob[label] = float(0)
 
-            prediction_list.append(max(prediction_prob, key=prediction_prob.get))
+
+            prediction_list.append(
+                max(prediction_prob, key=prediction_prob.get))
 
             # append current row's categorical probabilities
             for key in prediction_prob.keys():
@@ -150,6 +144,7 @@ class NaiveBayes:
         data['prediction'] = prediction_list
 
         return data
+
 
     def evaluate_on_data(self, data: pd.DataFrame, test_labels: pd.Series):
         """
@@ -170,3 +165,4 @@ class NaiveBayes:
         accuracy = confusion_matrix.at['All', 'All']
 
         return accuracy, confusion_matrix
+
