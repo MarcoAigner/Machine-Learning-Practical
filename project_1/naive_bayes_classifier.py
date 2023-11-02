@@ -19,6 +19,17 @@ class NaiveBayes:
         self.target_labels = []
         self.column_target = None
 
+    def suitable_data(self, data: pd.DataFrame, required_rows: int = 10) -> tuple[bool, int]:
+        """
+        Checks, whether data is suitable for fitting. Suitability is defined by having at least two distinct class instances as well as a defined number of rows (defaults to 10) 
+        :param data: pd.DataFrame containing training data (including the label column)
+        :param required_rows: int how many rows data needs to contain to count as suitable for fit
+        """
+        enough_rows = data.shape[0] >= required_rows
+        enough_classes = len(self.target_labels) >= 2
+
+        return (True, required_rows) if enough_rows & enough_classes else (False, required_rows)
+
     def fit(self, data: pd.DataFrame, target_name: str):
         """
         Fitting the training data by saving all relevant conditional probabilities for discrete values or for continuous
@@ -26,11 +37,16 @@ class NaiveBayes:
         :param data: pd.DataFrame containing training data (including the label column)
         :param target_name: str Name of the label column in data
         """
-
-        self.column_target = target_name
         # save some data to class variables
+        self.column_target = target_name  # label column name
         # class instances
         self.target_labels = data[self.column_target].unique()
+
+        # check if the data is sufficient for fitting
+        data_is_suitable, required_rows = self.suitable_data(data)
+        if (not data_is_suitable):
+            raise Exception(
+                f'Training data needs to contain at least two distinct classes and {required_rows} rows.')
 
         # calculate class probabilities
         self.class_probabilities = data[self.column_target].value_counts(
@@ -52,7 +68,7 @@ class NaiveBayes:
                     df['std'] = data.groupby(by=self.column_target)[
                         feature_column].std()
                     self.feature_probabilities[feature_column] = df
-                case 'string' | "bool":  # discrete value
+                case 'string' | 'bool':  # discrete value
                     grouped = data.groupby(by=self.column_target)[
                         feature_column]
                     self.feature_probabilities[feature_column] = grouped.value_counts(
