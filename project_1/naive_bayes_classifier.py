@@ -53,8 +53,8 @@ class NaiveBayes:
                         feature_column].std()
                     self.feature_probabilities[feature_column] = df
                 case 'string' | "bool":  # discrete value
-                    grouped = data.groupby(by=feature_column)[
-                        self.column_target]
+                    grouped = data.groupby(by=self.column_target)[
+                        feature_column]
                     self.feature_probabilities[feature_column] = grouped.value_counts(
                         normalize=True).reset_index()  # analogous to class probabilities
                 case _:
@@ -93,19 +93,13 @@ class NaiveBayes:
                                 self.feature_probabilities[column][self.column_target] == label) & (self.feature_probabilities[column][column] == feature_label)].iloc[0])
                         except:
                             likelyhood_list.append(float(0))
-                print(likelyhood_list)
 
                 # variable änder in zähler
-                print("class prob")
-                print(self.class_probabilities['proportion']
-                      [self.class_probabilities[self.column_target] == label].iloc[0])
                 likelyhood_prior[label] = math.prod(
                     likelyhood_list) * self.class_probabilities['proportion'][self.class_probabilities[self.column_target] == label].iloc[0]
-            print("prior")
-            print(likelyhood_prior)
+
             evidence = sum(likelyhood_prior.values())
-            print("evidence")
-            print(evidence)
+
             for label in self.target_labels:
                 if evidence > float(0):
                     prediction_prob[label] = likelyhood_prior[label]/evidence
