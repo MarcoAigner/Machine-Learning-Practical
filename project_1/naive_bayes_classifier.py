@@ -138,5 +138,23 @@ class NaiveBayes:
 
         return data
 
+    def evaluate_on_data(self, data: pd.DataFrame, test_labels: pd.Series):
+        """
+        Predicts a test DataFrame and compares it to the given test_labels.
+        :param data: pd.DataFrame containing the test data
+        :param test_labels:
+        :return: tuple of overall accuracy and confusion matrix values
+        """
 
+        # perform predictions
+        predictions = self.predict_probability(data=data)['prediction']  # a pd.Series
+
+        # calculate the normalized confusion matrix
+        confusion_matrix = pd.crosstab(
+            index=predictions, columns=test_labels, margins=True, normalize=True)
+
+        # extract the accuracy out of the confusion matrix
+        accuracy = confusion_matrix.at['All', 'All']
+
+        return accuracy, confusion_matrix
     
