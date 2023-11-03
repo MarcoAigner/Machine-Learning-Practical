@@ -71,8 +71,13 @@ class NaiveBayes:
         self.class_probabilities = data[self.column_target].value_counts(
             normalize=True).reset_index()
 
+        # Extract the feature columns
+        feature_columns = data.columns[data.columns !=
+                                       self.column_target].values
+
         # Calculate feature probabilities for each feature column except for the target_column
-        for feature_column in data[data.columns != self.column_target]:
+        # .values since an index is returned
+        for feature_column in feature_columns:
             # Initialize a DataFrame within the parent dictionary to store probabilities
             self.feature_probabilities[feature_column] = pd.DataFrame()
 
