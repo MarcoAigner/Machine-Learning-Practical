@@ -78,7 +78,7 @@ class NaiveBayes:
 
             # Check the data type of the feature column
             if data.dtypes[feature_column] == 'float64':
-                # For continuous values, calculate and store mean and std for each class instance
+                # For continuous values, calculate and store mean and standard deviation for each class instance
                 df = pd.DataFrame(self.target_labels, columns=[
                                   self.column_target])
                 df['mean'] = data.groupby(by=self.column_target)[
@@ -116,12 +116,12 @@ class NaiveBayes:
 
         # Loop through each row (data point) in the input DataFrame
         for index in data.index:
-            for label in self.target_labels:
+            for label in self.target_labels:  # iterate each label instance
                 likelyhood_list = []  # Stores the likelihood for each feature
                 for column in data.columns:
                     # Check if the feature is continuous (float data type)
                     if data[column].dtypes == float:
-                        # Calculate likelihood for continuous features
+                        # Lookup likelihood for continuous features
                         std = self.feature_probabilities[column]["std"][self.feature_probabilities[column]
                                                                         [self.column_target] == label].iloc[0]
                         mean = self.feature_probabilities[column]["mean"][self.feature_probabilities[column]
