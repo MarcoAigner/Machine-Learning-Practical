@@ -25,6 +25,7 @@ class NaiveBayes:
         # other variables
         self.target_labels = []  # the labels of the target column
         self.column_target = None  # name of the target column
+        self.df_predict = pd.DataFrame()  # save predictions
 
     def suitable_data(self, data: pd.DataFrame, required_rows: int = 10) -> tuple[bool, int]:
         """
@@ -166,14 +167,24 @@ class NaiveBayes:
             for key in prediction_prob.keys():
                 probs[key].append(prediction_prob[key])
 
-        # Create columns in the input DataFrame for each predicted class probability
+        # Create columns in the predict DataFrame for each predicted class probability
         for key in probs.keys():
-            data[key] = probs[key]
+            self.df_predict[key] = probs[key].copy()
 
         # Add the final column 'prediction' for the predicted class label
-        data['prediction'] = prediction_list
+        self.df_predict['prediction'] = prediction_list.copy()
 
-        return data  # Return the input DataFrame with added columns for probabilities and predictions
+        # keep index of input data to distinguish which paitents are in the test_set
+        self.df_predict.set_index(data.index.copy(), inplace=True)
+
+        # concat both datasets in order to have a nice dataframe with all the information
+        # ALERT -> import not to add columns directly into the orginal input data (cause this is going to cause a change in the data.columns
+        # and our loop would try to perform the loop and calcuate the likeleyhood probability for the new columns: True and False and predict
+        self.df_predict = pd.concat(
+            [data.copy(), self.df_predict.copy()], axis=1)
+
+        # Return the input DataFrame with added columns for probabilities and predictions
+        return self.df_predict
 
     def evaluate_on_data(self, data: pd.DataFrame, test_labels: pd.Series):
         """
