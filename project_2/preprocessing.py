@@ -25,17 +25,16 @@ def preprocess(test_data: pd.DataFrame) -> pd.DataFrame:
     test_data.rename(columns={'nacionality': 'nationality'}, inplace=True)
 
     # manually create a list of categorical column names
-    categorical_columns = ['marital_status', 'application_mode', 'application_order', 'course', 'daytime_evening_attendance', 'previous_qualification', 'nationality', 'mother_qualification',
-                           'father_qualification', 'mother_occupation', 'father_occupation', 'displaced', 'educational_special_needs', 'debtor', 'tuition_fees_up_to_date', 'gender', 'scholarship_holder', 'international', 'target']
+    categorical_columns = ['marital_status', 'application_mode', 'course', 'daytime_evening_attendance', 'previous_qualification', 'nationality', 'mother_qualification', 'father_qualification',
+                           'mother_occupation', 'father_occupation', 'displaced', 'educational_special_needs', 'debtor', 'tuition_fees_up_to_date', 'gender', 'scholarship_holder', 'international', 'target']
 
     # assign the categorical dtype to respective columns
     test_data[categorical_columns] = test_data[categorical_columns].astype(
         'category')
 
     # numerically encode the targets
-    label_encoder = LabelEncoder()
-    test_data['target'] = label_encoder.fit_transform(
-        test_data['target'])
+    target_mapping = {'Dropout': 0, 'Enrolled': 1, 'Graduate': 2}
+    test_data['target'] = test_data['target'].map(arg=target_mapping)
 
     # standard scale numerical features
     numerical_columns = test_data.select_dtypes(include=['int64', 'float64'])
@@ -46,18 +45,8 @@ def preprocess(test_data: pd.DataFrame) -> pd.DataFrame:
     test_data[numerical_columns.columns] = scaled  # override scaled columns
 
     # filter out columns
-    columns_to_keep = ['age_at_enrollment',
-                       'gender',
-                       'curricular_units_2nd_sem_without_evaluations',
-                       'application_order',
-                       'displaced',
-                       'admission_grade',
-                       'curricular_units_2nd_sem_enrolled',
-                       'scholarship_holder',
-                       'tuition_fees_up_to_date',
-                       'curricular_units_2nd_sem_grade',
-                       'curricular_units_2nd_sem_approved',
-                       'target']
+    columns_to_keep = ['curricular_units_2nd_sem_approved', 'curricular_units_2nd_sem_grade', 'curricular_units_1st_sem_approved', 'curricular_units_1st_sem_grade', 'admission_grade', 'curricular_units_2nd_sem_evaluations', 'tuition_fees_up_to_date', 'previous_qualification_grade', 'age_at_enrollment', 'curricular_units_1st_sem_evaluations',
+                       'course', 'father_occupation', 'mother_occupation', 'gdp', 'curricular_units_2nd_sem_enrolled', 'unemployment_rate', 'father_qualification', 'mother_qualification', 'inflation_rate', 'application_mode', 'curricular_units_1st_sem_enrolled', 'scholarship_holder', 'application_order', 'debtor', 'target']
 
     test_data = test_data[columns_to_keep]
 
