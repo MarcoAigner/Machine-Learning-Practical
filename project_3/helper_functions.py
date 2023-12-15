@@ -5,6 +5,54 @@ import matplotlib.figure
 import matplotlib.axes
 from sklearn.decomposition import PCA
 import numpy as np
+from sklearn.inspection._plot.decision_boundary import DecisionBoundaryDisplay
+from pandas.core.indexes.base import Index
+
+
+def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> DecisionBoundaryDisplay:
+    """ Plots the decision boundary given primary components and an estimator and returns it
+
+    Displays original data points as circles and imputed ones as pyramids. 
+    Color-codes inliners and outliers.
+
+    Args:
+        df (pd.DataFrame): dataframe containing principal components and a column encoding 'outliers'
+        estimator: sklearn estimator object to generate the decision boundary for
+        imputed_rows (pandas.core.indexes.base.Index): Indices of imputed rows
+
+    Returns:
+        disp (sklearn.inspection._plot.decision_boundary.DecisionBoundaryDisplay): plotted decision boundary display object
+    """
+
+    # enhance readability
+    first_two_pcs = df.iloc[:, :2]
+    rows_imputed = df.iloc[imputed_rows]
+    rows_not_imputed = df.drop(index=imputed_rows)
+
+    # decision boundary (background)
+    disp = DecisionBoundaryDisplay.from_estimator(
+        estimator=estimator,
+        X=first_two_pcs,
+        xlabel='1st principal component',
+        ylabel='2nd principal component',
+    )
+
+    # original datapoints
+    disp.ax_.scatter(rows_not_imputed.iloc[:, 0],
+                     rows_not_imputed.iloc[:, 1], s=10, c=rows_not_imputed['outlier'], cmap='Set3', marker='o', label='not imputed')
+    # imputed datapoints
+    disp.ax_.scatter(rows_imputed.iloc[:, 0],
+                     rows_imputed.iloc[:, 1], s=10, c=rows_imputed['outlier'], cmap='Set1', marker='^', label='imputed')
+
+    # legend
+    disp.ax_.legend()
+    disp.ax_.get_legend().legend_handles[0].set_color('black')
+    disp.ax_.get_legend().legend_handles[1].set_color('black')
+
+    # title
+    disp.ax_.set_title('Decision Boundary')
+
+    return disp
 
 
 def feature_distribution_plot(df: pd.DataFrame, suptitle: str) -> matplotlib.figure.Figure:
