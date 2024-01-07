@@ -7,6 +7,7 @@ from sklearn.decomposition import PCA
 import numpy as np
 from sklearn.inspection._plot.decision_boundary import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
+from sklearn.metrics import accuracy_score, mean_squared_error
 
 
 def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> DecisionBoundaryDisplay:
@@ -187,3 +188,40 @@ def cumulative_explained_ratio(pca: PCA) -> list[float]:
                 value + cumulative_explained_ratio[index - 1])
 
     return cumulative_explained_ratio
+
+
+def imputation_and_accuracy(train_data, test_data, features, imputer_dict, accuracy_metric):
+    # Initialize a DataFrame to store accuracy results
+    accuracy_df = pd.DataFrame(columns=features, index=imputer_dict.keys())
+
+    for strategy, imputer in imputer_dict.items():
+        # Fit on train data
+        imputer.fit(train_data)
+
+        # Copy the original test_data for the accuracy later
+        test_data_imputed = test_data.copy()
+
+        for feature in features:
+            # Remove original values of the target feature in the test set
+            test_data_imputed[feature] = None
+
+            test_data_imputed_df = imputer.transform(test_data_imputed)
+
+            # Check the type of your target variable and choose the appropriate metric
+            # It's a classification problem
+            if accuracy_metric == 'classification':
+                if test_data.dtypes[feature] == 'float64':
+                    accuracy_df.loc[strategy, feature] = accuracy_score(test_data[feature].astype(
+                        "int64"), test_data_imputed_df[feature].astype("int64"))
+                else:
+                    accuracy_df.loc[strategy, feature] = accuracy_score(
+                        test_data[feature], test_data_imputed_df[feature].astype("int64"))
+            # It's a regression problem
+            elif accuracy_metric == 'regression':
+                accuracy_df.loc[strategy, feature] = mean_squared_error(
+                    test_data[feature], test_data_imputed_df[feature])
+            else:
+                "Not a valid accuracy method"
+
+    # Return the DataFrame containing accuracy results
+    return accuracy_df
