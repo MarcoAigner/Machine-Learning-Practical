@@ -7,6 +7,7 @@ from sklearn.decomposition import PCA
 import numpy as np
 from sklearn.inspection._plot.decision_boundary import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 
 def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> DecisionBoundaryDisplay:
@@ -187,3 +188,35 @@ def cumulative_explained_ratio(pca: PCA) -> list[float]:
                 value + cumulative_explained_ratio[index - 1])
 
     return cumulative_explained_ratio
+
+def imputation_and_accuracy(train_data, test_data, features, imputer_dict):
+    # Initialize a DataFrame to store accuracy results
+    accuracy_df = pd.DataFrame(columns=features, index=imputer_dict.keys())
+
+    for feature in features:
+        for strategy, imputer in imputer_dict.items():
+            # Fit and transform on train data
+            imputer.fit(train_data)
+
+            # Impute only the NaN values in the test set
+            test_data_imputed = test_data.copy()
+
+            # Remove original values of the target feature in the test set
+            test_data_imputed[feature] = None
+            
+            test_data_imputed_df = imputer.transform(test_data_imputed)
+            
+           # Check the type of your target variable and choose the appropriate metric
+            if test_data.dtypes[feature] == 'float64':
+                # It's a regression problem
+                accuracy_df.loc[strategy, feature] = mean_squared_error(test_data[feature], test_data_imputed_df[feature])
+                
+            else:
+                # It's a classification problem
+                accuracy_df.loc[strategy, feature] = accuracy_score(test_data[feature], test_data_imputed_df[feature].astype("int64"))
+                
+            # Print accuracy for each feature and imputer
+            #print(f"Accuracy for {feature} with {strategy} imputer: {accuracy}")
+
+    # Return the DataFrame containing accuracy results
+    return accuracy_df
