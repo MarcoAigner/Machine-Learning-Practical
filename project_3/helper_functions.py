@@ -10,6 +10,11 @@ from pandas.core.indexes.base import Index
 from sklearn.metrics import mean_squared_error, accuracy_score
 
 
+import pandas as pd
+from sklearn.inspection import DecisionBoundaryDisplay
+from pandas.core.indexes.base import Index
+
+
 def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> DecisionBoundaryDisplay:
     """ Plots the decision boundary given primary components and an estimator and returns it
 
@@ -39,16 +44,29 @@ def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> 
     )
 
     # original datapoints
-    disp.ax_.scatter(rows_not_imputed.iloc[:, 0],
-                     rows_not_imputed.iloc[:, 1], s=10, c=rows_not_imputed['outlier'], cmap='Set3', marker='o', label='not imputed')
+    scatter_not_imputed = disp.ax_.scatter(rows_not_imputed.iloc[:, 0],
+                                           rows_not_imputed.iloc[:, 1], s=10, c=rows_not_imputed['outlier'], cmap='Set3', marker='o', label='not imputed')
     # imputed datapoints
-    disp.ax_.scatter(rows_imputed.iloc[:, 0],
-                     rows_imputed.iloc[:, 1], s=10, c=rows_imputed['outlier'], cmap='Set1', marker='^', label='imputed')
+    scatter_imputed = disp.ax_.scatter(rows_imputed.iloc[:, 0],
+                                       rows_imputed.iloc[:, 1], s=10, c=rows_imputed['outlier'], cmap='Set1', marker='^', label='imputed')
 
-    # legend
-    disp.ax_.legend()
-    disp.ax_.get_legend().legend_handles[0].set_color('black')
-    disp.ax_.get_legend().legend_handles[1].set_color('black')
+    # legend for normal values
+    legend_labels = ['not imputed', 'imputed']
+    legend1_handles = [disp.ax_.scatter([], [], c='black', marker='o', s=10),
+                       disp.ax_.scatter([], [], c='black', marker='^', s=10)]
+    legend1 = disp.ax_.legend(handles=legend1_handles,
+                              labels=legend_labels, loc='upper left')
+
+    # create separate legends for 'o' and '^' markers with -1 color for outliers
+    legend2_o = disp.ax_.legend(*scatter_not_imputed.legend_elements(),
+                                title='Outliers (o)', loc='upper right', bbox_to_anchor=(1, 0.5))
+    legend2_hat = disp.ax_.legend(*scatter_imputed.legend_elements(),
+                                  title='Outliers (^)', loc='lower right', bbox_to_anchor=(1, 0.5))
+
+    # add both legends to the plot
+    disp.ax_.add_artist(legend1)
+    disp.ax_.add_artist(legend2_o)
+    disp.ax_.add_artist(legend2_hat)
 
     # title
     disp.ax_.set_title('Decision Boundary')
@@ -210,9 +228,6 @@ def imputation_and_accuracy(train_data, test_data, features, imputer_dict):
            # Check the type of your target variable and choose the appropriate metric
             accuracy_df.loc[strategy, feature] = mean_squared_error(
                 test_data[feature], test_data_imputed_df[feature])
-
-            # Print accuracy for each feature and imputer
-            # print(f"Accuracy for {feature} with {strategy} imputer: {accuracy}")
 
     # Return the DataFrame containing accuracy results
     return accuracy_df
