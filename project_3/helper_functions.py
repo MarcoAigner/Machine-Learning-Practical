@@ -189,6 +189,7 @@ def cumulative_explained_ratio(pca: PCA) -> list[float]:
 
     return cumulative_explained_ratio
 
+
 def imputation_and_accuracy(train_data, test_data, features, imputer_dict):
     # Initialize a DataFrame to store accuracy results
     accuracy_df = pd.DataFrame(columns=features, index=imputer_dict.keys())
@@ -203,20 +204,15 @@ def imputation_and_accuracy(train_data, test_data, features, imputer_dict):
 
             # Remove original values of the target feature in the test set
             test_data_imputed[feature] = None
-            
+
             test_data_imputed_df = imputer.transform(test_data_imputed)
-            
+
            # Check the type of your target variable and choose the appropriate metric
-            if test_data.dtypes[feature] == 'float64':
-                # It's a regression problem
-                accuracy_df.loc[strategy, feature] = mean_squared_error(test_data[feature], test_data_imputed_df[feature])
-                
-            else:
-                # It's a classification problem
-                accuracy_df.loc[strategy, feature] = accuracy_score(test_data[feature], test_data_imputed_df[feature].astype("int64"))
-                
+            accuracy_df.loc[strategy, feature] = mean_squared_error(
+                test_data[feature], test_data_imputed_df[feature])
+
             # Print accuracy for each feature and imputer
-            #print(f"Accuracy for {feature} with {strategy} imputer: {accuracy}")
+            # print(f"Accuracy for {feature} with {strategy} imputer: {accuracy}")
 
     # Return the DataFrame containing accuracy results
     return accuracy_df
