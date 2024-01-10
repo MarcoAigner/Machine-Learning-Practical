@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.inspection._plot.decision_boundary import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
 from sklearn.metrics import mean_squared_error, accuracy_score
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 
 
 import pandas as pd
@@ -75,6 +75,33 @@ def get_decision_path(trained_decision_tree: DecisionTreeClassifier, data_sample
         trained_decision_tree.decision_path(data_sample).toarray()).transpose()
     passed_nodes = decision_path.index[decision_path[0] == 1].to_list()
     return passed_nodes
+
+
+def plot_decision_tree(decision_tree: DecisionTreeClassifier, feature_names: list, class_names: list[str]) -> None:
+    """ Plots a fitted decision tree
+
+     Args:
+        decision_tree (DecisionTreeClassifier): an already fitted decison tree classifier
+        feature_names (list): list of the feature names (list(X_train.columns))
+        class_names (list[str]): textual representation of the classes
+
+    Returns:
+        None: Prints out the plot
+    """
+    # Plot the decision tree
+    plt.figure(figsize=(20, 10))
+    plot_tree(decision_tree,  # classifier to plot
+              filled=True,  # color-code according to classes
+              feature_names=feature_names,  # plotted on top of a box
+              class_names=class_names,  # plotted at the bottom of a box
+              impurity=False,  # for easier understanding
+              precision=2,  # round values
+              node_ids=True  # show node ids
+              )
+
+    plt.title('Hemogram-Based Classification of Blood Donors', fontsize=15)
+
+    plt.show()
 
 
 def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> DecisionBoundaryDisplay:
