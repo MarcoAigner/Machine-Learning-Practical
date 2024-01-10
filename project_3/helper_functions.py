@@ -8,11 +8,73 @@ import numpy as np
 from sklearn.inspection._plot.decision_boundary import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
 from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.tree import DecisionTreeClassifier
 
 
 import pandas as pd
 from sklearn.inspection import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
+
+
+def explain_prediction(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> None:
+    """ Prints a predicted class and a decision path for a given decision tree and data sample
+
+    Args:
+        trained_decision_tree (DecisionTreeClassifier): Decision tree classifier on which .fit() has already been called
+        data_sample (np.ndarray): One row of sample data to predict upon
+        class_names (list[str]): List of class names according to the numerical class encodings
+
+    Returns:
+        None: Only prints
+    """
+
+    # get the predicted class and path taken
+    predicted_class = get_predicted_class(
+        trained_decision_tree, data_sample, class_labels)
+    decision_path = get_decision_path(trained_decision_tree, data_sample)
+
+    # format the outputs
+    decision_path_string = list(map(str, decision_path))
+    other_nodes = ', '.join(decision_path_string[:-1])
+    last_node = decision_path_string[-1]
+
+    # print
+    print(f'Predicted Class: {predicted_class}')
+    print(f'Path taken: Nodes {other_nodes} and {last_node}')
+
+
+def get_predicted_class(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> str:
+    """ Predicts a sample using a DecisionTree and returns a class label
+
+    Args:
+        trained_decision_tree (DecisionTreeClassifier): Decision tree classifier on which .fit() has already been called
+        data_sample (np.ndarray): One row of sample data to predict upon
+        class_names (list[str]): List of class names according to the numerical class encodings
+
+    Returns:
+        predicted_class (str): The textual representation of the predicted class
+    """
+
+    prediction = trained_decision_tree.predict(data_sample)[0]
+    predicted_class = class_labels[prediction]
+
+    return predicted_class
+
+
+def get_decision_path(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray) -> list[int]:
+    """ Returns a list of nodes in given decison tree passes while predicting a data sample
+
+    Args:
+        trained_decision_tree (DecisionTreeClassifier): Decision tree classifier on which .fit() has already been called
+        data_sample (np.ndarray): One row of sample data to predict upon
+
+    Returns:
+        passed_nodes (list[int]): A list of the nodes the decision tree passes while predicting ordered from root to leaf
+    """
+    decision_path = pd.DataFrame(
+        trained_decision_tree.decision_path(data_sample).toarray()).transpose()
+    passed_nodes = decision_path.index[decision_path[0] == 1].to_list()
+    return passed_nodes
 
 
 def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> DecisionBoundaryDisplay:
