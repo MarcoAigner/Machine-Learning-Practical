@@ -14,6 +14,47 @@ from sklearn.tree import DecisionTreeClassifier, plot_tree
 import pandas as pd
 from sklearn.inspection import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
+import random
+
+
+def generate_anomalies(quantity: int):
+    """ Generates a list of anomaly datapoints based on random values.  
+
+    The ranges out of which the attributes' values are picked are hardcoded, based on the distribution of phase_3 data
+
+    Args:
+        quantity (int): How many anomalies should get generated
+
+    Returns:
+        df (pd.DataFrame): dataframe with (quantity) rows of generated anomaly datapoints
+    """
+
+    df = pd.DataFrame()
+
+    for i in range(0, quantity):
+        category = random.choice(
+            ['3=Cirrhosis', '1=Hepatitis', '2=Fibrosis', '0s=suspect Blood Donor'])
+        age = random.randint(55, 70)
+        sex = random.choice(['m', 'f'])
+        alb = random.randint(60, 80)
+        alp = random.randint(150, 400)
+        alt = random.randint(100, 300)
+        ast = random.randint(100, 200)
+        bil = random.randint(50, 250)
+        che = random.randint(10, 15)
+        chol = random.randint(7, 10)
+        crea = random.randint(250, 1000)
+        ggt = random.randint(150, 600)
+        prot = random.randint(0, 65)
+
+        new_row = [category, age, sex, alb, alp, alt,
+                   ast, bil, che, chol, crea, ggt, prot]
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+    df.columns = ['Category', 'Age', 'Sex', 'ALB', 'ALP', 'ALT',
+                  'AST', 'BIL', 'CHE', 'CHOL', 'CREA', 'GGT', 'PROT']
+
+    return df
 
 
 def explain_prediction(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> None:
