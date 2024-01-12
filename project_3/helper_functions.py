@@ -9,6 +9,7 @@ from sklearn.inspection._plot.decision_boundary import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.ensemble import IsolationForest
 
 
 import pandas as pd
@@ -33,7 +34,7 @@ def generate_anomalies(quantity: int):
 
     for i in range(0, quantity):
         category = random.choice(
-            ['3=Cirrhosis', '1=Hepatitis', '2=Fibrosis', '0s=suspect Blood Donor'])
+            ['3=Cirrhosis', '1=Hepatitis', '2=Fibrosis', '0=suspect Blood Donor'])
         age = random.randint(55, 70)
         sex = random.choice(['m', 'f'])
         alb = random.randint(60, 80)
@@ -57,7 +58,7 @@ def generate_anomalies(quantity: int):
     return df
 
 
-def explain_prediction(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> None:
+def explain_prediction_dt(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> None:
     """ Prints a predicted class and a decision path for a given decision tree and data sample
 
     Args:
@@ -82,6 +83,23 @@ def explain_prediction(trained_decision_tree: DecisionTreeClassifier, data_sampl
     # print
     print(f'Predicted Class: {predicted_class}')
     print(f'Path taken: Nodes {other_nodes} and {last_node}')
+
+def explain_prediction_iso(trained_isolation_forest: IsolationForest, data_sample: np.ndarray):
+    """ Prints a predicted anomaly for a given data sample
+
+    Args:
+        trained_isolation_forest (IsolationForest): Isolationforest on which .fit() has already been called
+        data_sample (np.ndarray): One row of sample data to predict upon
+
+    Returns:
+        None: Only prints
+    """
+    predicted_anomaly = trained_isolation_forest.predict(data_sample)
+                
+    if predicted_anomaly == -1:
+        print("This patient shows an anomaly \n")
+    else:
+        print("This patient shows no anomaly \n")
 
 
 def get_predicted_class(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> str:
@@ -339,6 +357,19 @@ def cumulative_explained_ratio(pca: PCA) -> list[float]:
 
 
 def imputation_and_accuracy(train_data, test_data, features, imputer_dict):
+    """ Returns a dataframe including the accuracies for all columns containing nan-values using different imputation methods
+
+    Args:
+        train_data: data that should be used to train the imputer
+        test_data: data that should be used to test the imputer
+        features: list of feature names containing nan-values
+        imputer_dict: 
+                key: imputation name
+                value: instanz of the matching imputer
+
+    Returns:
+        dataframe: accuracy for all columns containing nan-values using different imputation methods
+    """
     # Initialize a DataFrame to store accuracy results
     accuracy_df = pd.DataFrame(columns=features, index=imputer_dict.keys())
 
