@@ -81,7 +81,7 @@ def explain_prediction(trained_decision_tree: DecisionTreeClassifier, data_sampl
 
     # print
     print(f'Predicted Class: {predicted_class}')
-    print(f'Path taken: Nodes {other_nodes} and {last_node} \n')
+    print(f'Path taken: Nodes {other_nodes} and {last_node}')
 
 
 def get_predicted_class(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> str:
