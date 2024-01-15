@@ -33,26 +33,24 @@ def generate_anomalies(quantity: int):
     df = pd.DataFrame()
 
     for i in range(0, quantity):
-        category = random.choice(
-            ['3=Cirrhosis', '1=Hepatitis', '2=Fibrosis', '0=suspect Blood Donor'])
-        age = random.randint(55, 70)
+        age = random.randint(15, 70)
         sex = random.choice(['m', 'f'])
-        alb = random.randint(60, 80)
-        alp = random.randint(150, 400)
-        alt = random.randint(100, 300)
-        ast = random.randint(100, 200)
-        bil = random.randint(50, 250)
-        che = random.randint(10, 15)
-        chol = random.randint(7, 10)
-        crea = random.randint(250, 1000)
-        ggt = random.randint(150, 600)
-        prot = random.randint(0, 65)
+        alb = random.randint(10, 80)
+        alp = random.randint(10, 200)
+        alt = random.randint(15, 170)
+        ast = random.randint(15, 350)
+        bil = random.randint(3, 40)
+        che = random.randint(3, 25)
+        chol = random.randint(1, 12)
+        crea = random.randint(5, 70)
+        ggt = random.randint(5, 300)
+        prot = random.randint(0, 100)
 
-        new_row = [category, age, sex, alb, alp, alt,
+        new_row = [age, sex, alb, alp, alt,
                    ast, bil, che, chol, crea, ggt, prot]
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
-    df.columns = ['Category', 'Age', 'Sex', 'ALB', 'ALP', 'ALT',
+    df.columns = ['Age', 'Sex', 'ALB', 'ALP', 'ALT',
                   'AST', 'BIL', 'CHE', 'CHOL', 'CREA', 'GGT', 'PROT']
 
     return df
@@ -95,11 +93,13 @@ def explain_prediction_iso(trained_isolation_forest: IsolationForest, data_sampl
         None: Only prints
     """
     predicted_anomaly = trained_isolation_forest.predict(data_sample)
+    decision = trained_isolation_forest.decision_function(data_sample)
                 
     if predicted_anomaly == -1:
-        print("This patient shows an anomaly \n")
+        print("This patient shows an anomaly")
     else:
-        print("This patient shows no anomaly \n")
+        print("This patient shows no anomaly")
+    print("Calculated value for the anomaly is:", decision, "\n")
 
 
 def get_predicted_class(trained_decision_tree: DecisionTreeClassifier, data_sample: np.ndarray, class_labels: list[str]) -> str:
