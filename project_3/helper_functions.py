@@ -388,7 +388,7 @@ def plot_final(cluster_data: pd.DataFrame):
     for cluster_label in set(cluster_labels):
         cluster_data = foreground_data[foreground_data['Cluster'] == cluster_label]
         label = "Normal" if cluster_label == 0 else "Anomaly"
-        plt.scatter(cluster_data['pca0'], cluster_data['pca1'], label=f'Cluster {label}')
+        plt.scatter(cluster_data['pca0'], cluster_data['pca1'], label=f'{label}')
 
     # Adjust labels and legends
     plt.title('Gaussian Mixture Model Clustering with Background Groups')
