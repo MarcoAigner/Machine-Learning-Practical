@@ -10,9 +10,7 @@ from pandas.core.indexes.base import Index
 from sklearn.metrics import mean_squared_error, accuracy_score
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.ensemble import IsolationForest
-
-
-import pandas as pd
+from sklearn.mixture import GaussianMixture
 from sklearn.inspection import DecisionBoundaryDisplay
 from pandas.core.indexes.base import Index
 import random
@@ -207,9 +205,9 @@ def decision_boundary_plot(df: pd.DataFrame, estimator, imputed_rows: Index) -> 
 
     # create separate legends for 'o' and '^' markers with -1 color for outliers
     legend2_o = disp.ax_.legend(*scatter_not_imputed.legend_elements(),
-                                title='Outliers (o)', loc='upper right', bbox_to_anchor=(1, 0.5))
+                                title='Outliers not imputed', loc='upper right', bbox_to_anchor=(1, 0.5))
     legend2_hat = disp.ax_.legend(*scatter_imputed.legend_elements(),
-                                  title='Outliers (^)', loc='lower right', bbox_to_anchor=(1, 0.5))
+                                  title='Outliers imputed', loc='lower right', bbox_to_anchor=(1, 0.5))
 
     # add both legends to the plot
     disp.ax_.add_artist(legend1)
@@ -326,6 +324,83 @@ def pca_plot(ax: matplotlib.axes.Axes, first_pc: pd.Series, second_pc: pd.Series
     ax.set_title(title)
 
     return ax
+
+def plot_clustering(df: pd.DataFrame):
+    """ Plots two principal components against each other with the GaussianMixture clustering 
+
+    Args:
+        df (pd.DataFrame): dataframe containing the principal components         
+    """
+    
+    # Extract the two principal components
+    pca_components = df[['pca0', 'pca1']]
+
+    # Perform Gaussian Mixture Model clustering
+    n_components = 2  
+    gmm = GaussianMixture(n_components=n_components, random_state=42)
+    gmm.fit(pca_components)
+
+    # Predict the cluster labels
+    cluster_labels = gmm.predict(pca_components)
+
+    # Add the cluster labels to the DataFrame
+    df['Cluster'] = cluster_labels
+
+    # Plot the data points with cluster assignments
+    plt.scatter(df['pca0'], df['pca1'], c=cluster_labels, cmap='viridis', s=50, alpha=0.7)
+    plt.title('Gaussian Mixture Model Clustering with Two Principal Components')
+    plt.xlabel('Principal Component 1 (PC1)')
+    plt.ylabel('Principal Component 2 (PC2)')
+    plt.show()
+
+def plot_final(cluster_data: pd.DataFrame):
+    """ Plots two principal components against each other with the GaussianMixture clustering and the normal data in the background
+
+    Args:
+        df (pd.DataFrame): dataframe containing the principal components         
+    """
+    # Extract the two principal components
+    pca_components = cluster_data[['pca0', 'pca1']]
+
+    # Perform Gaussian Mixture Model clustering
+    n_components = 2  # Adjust the number of components as needed
+    gmm = GaussianMixture(n_components=n_components, random_state=42)
+    gmm.fit(pca_components)
+
+    # Predict the cluster labels
+    cluster_labels = gmm.predict(pca_components)
+
+    # Add the cluster labels to the DataFrame
+    cluster_data['Cluster'] = cluster_labels
+
+    # Assign different colors to pca0 and pca1 in the background
+    background_colors = {"0": 'lightgreen', "1": 'lightpink'}
+
+    # Plot background groups with lower opacity
+    for category, color in background_colors.items():
+        background_data = cluster_data[cluster_data['Cluster'] == int(category)]  # Adjusted to use cluster_data
+        label = "Trainset Normal" if category == "0" else "Trainset Anomaly"
+        plt.scatter(background_data['pca0'], background_data['pca1'],
+                    color=color, alpha=0.3, label=label)
+
+    # Plot clusters on top
+    foreground_data = cluster_data.iloc[615:645]  # Adjusted to use cluster_data
+    for cluster_label in set(cluster_labels):
+        cluster_data = foreground_data[foreground_data['Cluster'] == cluster_label]
+        label = "Normal" if cluster_label == 0 else "Anomaly"
+        plt.scatter(cluster_data['pca0'], cluster_data['pca1'], label=f'Cluster {label}')
+
+    # Adjust labels and legends
+    plt.title('Gaussian Mixture Model Clustering with Background Groups')
+    plt.xlabel('Principal Component 1 (PC1)')
+    plt.ylabel('Principal Component 2 (PC2)')
+
+    # Show legend for both background groups and clusters
+    plt.legend()
+
+    # Show the plot
+    plt.show()
+
 
 
 def cumulative_explained_ratio(pca: PCA) -> list[float]:
