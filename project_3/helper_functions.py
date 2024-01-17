@@ -388,7 +388,7 @@ def plot_final(cluster_data: pd.DataFrame):
     for cluster_label in set(cluster_labels):
         cluster_data = foreground_data[foreground_data['Cluster'] == cluster_label]
         label = "Normal" if cluster_label == 0 else "Anomaly"
-        plt.scatter(cluster_data['pca0'], cluster_data['pca1'], label=f'{label}')
+        plt.scatter(cluster_data['pca0'], cluster_data['pca1'], label=f'Generated {label}')
 
     # Adjust labels and legends
     plt.title('Gaussian Mixture Model Clustering with Background Groups')
@@ -396,7 +396,7 @@ def plot_final(cluster_data: pd.DataFrame):
     plt.ylabel('Principal Component 2 (PC2)')
 
     # Show legend for both background groups and clusters
-    plt.legend()
+    plt.legend(loc='upper right')
 
     # Show the plot
     plt.show()
